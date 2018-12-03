@@ -106,6 +106,30 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+	for(int pi=0; pi < num_particles; pi++){
+		
+		Particle &particle = particles[pi];
+
+		// transform observation from vehicle coordinate to Map coordinate
+		std::vector<LandmarkObs> transormed_obss;
+		for(int oi=0; oi < observations.size(); oi++){ 
+			LandmarkObs obs = observations[oi];
+			// apply homogenous transformation
+			LandmarkObs trans_obs;
+			trans_obs.x = obs.x + cos(particle.theta)*obs.x - sin(particle.theta)*obs.y;
+			trans_obs.y = obs.y + sin(particle.theta)*obs.x + cos(particle.theta)*obs.y;
+			transormed_obss.push_back(trans_obs);
+		}
+
+		// Find lanmarks around current particle.
+		// Does the provided observations include observations of lanmarks on the side/rear of the vehicle?
+		// I don't know, so just find all lanmarks around the particle for lanmarks/observations association.
+		std::vector<LandmarkObs> around_lanmarks;
+		
+
+
+	}
 }
 
 void ParticleFilter::resample() {
