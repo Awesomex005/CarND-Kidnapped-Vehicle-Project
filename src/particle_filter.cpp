@@ -92,6 +92,28 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
 	//   implement this method and use it as a helper during the updateWeights phase.
 
+	for(int oi=0; oi < observations.size(); oi++){
+		// find nearest lanmark for the observation
+
+		if(predicted.size() == 0){
+			// how to handle this situation?
+			std::cout << "no lanmark around the particle!" << std::endl;
+			exit(-1);
+		}
+
+		double min_dist = dist(predicted[0].x, predicted[0].y, observations[oi].x, observations[oi].y);
+		observations[oi].id = predicted[0].id;
+
+		for(int li=0; li < predicted.size(); li++){
+
+			double dist_ = dist(predicted[li].x, predicted[li].y, observations[oi].x, observations[oi].y);
+
+			if(dist_ <= min_dist){
+				min_dist = dist_;
+				observations[oi].id = predicted[0].id;
+			}
+		}
+	}
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -142,9 +164,24 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 		dataAssociation(around_lms, transformed_obss);
 
+		// update weights
+		double weight = 1;
+		for(int oi=0; oi < transformed_obss.size(); oi++){
 
+			// Multivariate-Gaussian Probability
+			double sig_x = std_landmark[0];
+			double sig_y = std_landmark[1];
+			double x_obs = transformed_obss[oi].x;
+			double y_obs = transformed_obss[oi].y;
+			double mu_x = map_landmarks.landmark_list[ transformed_obss[oi].id ].x_f;
+			double mu_y = map_landmarks.landmark_list[ transformed_obss[oi].id ].y_f;
 
+			double gauss_norm= (1./(2 * M_PI * sig_x * sig_y));
+			double exponent= pow((x_obs - mu_x), 2)/(2 * pow(sig_x, 2)) + pow((y_obs - mu_y), 2)/(2 * pow(sig_y, 2));
+			weight *= (gauss_norm * exp(-exponent));
+		}
 
+		particle.weight = weight;
 	}
 }
 
