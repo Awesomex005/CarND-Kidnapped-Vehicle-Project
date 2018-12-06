@@ -15,6 +15,8 @@
 #include <string>
 #include <iterator>
 
+#include <time.h>
+
 #include "particle_filter.h"
 
 using namespace std;
@@ -41,6 +43,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		p.theta = dist_theta(gen);
 		p.weight = 1;
 		particles.push_back(p);
+		weights.push_back(p.weight);
 		DEBUG_PRINT("particle %d %f %f %f\n", particles[i].id, particles[i].x, particles[i].y, particles[i].theta);
 	}
 }
@@ -182,6 +185,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 
 		particle.weight = weight;
+		weights[pi] = particle.weight;
 	}
 }
 
@@ -190,6 +194,38 @@ void ParticleFilter::resample() {
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
+	double RANDOM_MAX = 9999.0;
+	std::default_random_engine gen(time(NULL));
+  	std::uniform_int_distribution<int> udist(0,num_particles - 1);
+	std::uniform_int_distribution<int> udist2(0,RANDOM_MAX);
+
+	int index = udist(gen);
+	double beta = 0.0;
+	double mw = 0.0;
+
+	std::vector<double>::iterator biggest = std::max_element(std::begin(weights), std::end(weights));
+	mw = *biggest;
+
+	std::vector<double> new_weights;
+	std::vector<Particle> new_particles;
+
+	// resample wheels
+	for(int pi=0; pi < num_particles; pi++){
+
+		Particle p;
+		beta += 2.0 * mw * ((double)udist2(gen)/RANDOM_MAX);
+
+		while(beta > weights[index]){
+			beta -= weights[index];
+			index = (index+1) % num_particles;
+		}
+
+		p = particles[index];
+		new_particles.push_back(p);
+		new_weights.push_back(p.weight);
+	}
+	weights = new_weights;
+	particles = new_particles;
 }
 
 Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<int>& associations,
