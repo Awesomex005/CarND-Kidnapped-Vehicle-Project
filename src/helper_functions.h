@@ -19,10 +19,19 @@
 const double M_PI = 3.14159265358979323846;
 #endif
 
-extern int debug_level;
-#define PRINTF printf
-#define DEBUG_PRINT(STR, Args...)	do{ if(debug_level)PRINTF(STR, ##Args);}while(0)
+#define DBG_LEVEL 0
 
+#if (DBG_LEVEL)
+#define PRINTF printf
+#define DEBUG_PRINT1(STR, Args...)	do{ if((DBG_LEVEL))PRINTF(STR, ##Args);}while(0)
+#define DEBUG_PRINT2(STR, Args...)	do{ if((DBG_LEVEL) >= 2)PRINTF(STR, ##Args);}while(0)
+#define DEBUG_PRINT3(STR, Args...)	do{ if((DBG_LEVEL) >= 3)PRINTF(STR, ##Args);}while(0)
+#else
+#define PRINTF
+#define DEBUG_PRINT1
+#define DEBUG_PRINT2
+#define DEBUG_PRINT3
+#endif
 /*
  * Struct representing one position/control measurement.
  */

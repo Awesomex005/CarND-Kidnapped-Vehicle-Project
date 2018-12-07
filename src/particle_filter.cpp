@@ -26,6 +26,13 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1.
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
+
+	DEBUG_PRINT1("init start.\n");
+	if(0 == num_particles){
+		printf("please specify num of particles.\n");
+		exit(0);
+	}
+
 	default_random_engine gen;
 
 	double std_x = std[0];
@@ -44,8 +51,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		p.weight = 1;
 		particles.push_back(p);
 		weights.push_back(p.weight);
-		DEBUG_PRINT("particle %d %f %f %f\n", particles[i].id, particles[i].x, particles[i].y, particles[i].theta);
+		DEBUG_PRINT3("particle %d %f %f %f\n", particles[i].id, particles[i].x, particles[i].y, particles[i].theta);
 	}
+	is_initialized = true;
+	DEBUG_PRINT1("init end.\n");
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -58,6 +67,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	double std_x = std_pos[0];
 	double std_y = std_pos[1];
 	double std_theta = std_pos[2];
+
+	DEBUG_PRINT1("prediction start.\n");
 
 	for(int i=0; i < num_particles; i++){
 		double x = particles[i].x;
@@ -86,7 +97,10 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 		particles[i].x = x;
 		particles[i].y = y;
 		particles[i].theta = theta;
+		DEBUG_PRINT3("prediction particle %d %f %f %f\n", particles[i].id, particles[i].x, particles[i].y, particles[i].theta);
 	}
+
+	DEBUG_PRINT1("prediction end.\n");
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
@@ -113,7 +127,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 
 			if(dist_ <= min_dist){
 				min_dist = dist_;
-				observations[oi].id = predicted[0].id;
+				observations[oi].id = predicted[li].id;
 			}
 		}
 	}
@@ -132,9 +146,12 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
+	DEBUG_PRINT1("updateWeights start.\n");
+
 	for(int pi=0; pi < num_particles; pi++){
 
 		Particle &particle = particles[pi];
+		DEBUG_PRINT2("updateWeights particle: %d %f %f.\n", particle.id, particle.x, particle.y);
 
 		// transform observation from vehicle coordinate to Map coordinate
 		std::vector<LandmarkObs> transformed_obss;
@@ -158,11 +175,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			if(dist(particle.x, particle.y, \
 				map_landmarks.landmark_list[li].x_f, map_landmarks.landmark_list[li].y_f) <= sensor_range)
 			{
-				lm.id = map_landmarks.landmark_list[li].id_i;
+				//lm.id = map_landmarks.landmark_list[li].id_i;  // map_landmarks.landmark_list[li].id_i is start from 1 not zero
+				lm.id = li;
 				lm.x = map_landmarks.landmark_list[li].x_f;
 				lm.y = map_landmarks.landmark_list[li].y_f;
 				around_lms.push_back(lm);
+
+				DEBUG_PRINT2("updateWeights around_lms: %d %f %f.\n", lm.id, lm.x, lm.y);
 			}
+
 		}
 
 		dataAssociation(around_lms, transformed_obss);
@@ -182,17 +203,24 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double gauss_norm= (1./(2 * M_PI * sig_x * sig_y));
 			double exponent= pow((x_obs - mu_x), 2)/(2 * pow(sig_x, 2)) + pow((y_obs - mu_y), 2)/(2 * pow(sig_y, 2));
 			weight *= (gauss_norm * exp(-exponent));
+			DEBUG_PRINT2("updateWeights obs:    %f %f.\n",transformed_obss[oi].x, transformed_obss[oi].y);
+			DEBUG_PRINT2("updateWeights lm : %d %f %f.\n", transformed_obss[oi].id, mu_x, mu_y);
+			DEBUG_PRINT2("updateWeights weight: %f .\n", weight);
 		}
 
 		particle.weight = weight;
 		weights[pi] = particle.weight;
+		DEBUG_PRINT2("updateWeights particle %d %f\n", particles[pi].id, particles[pi].weight);
 	}
+	DEBUG_PRINT1("updateWeights end.\n");
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight.
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+
+	DEBUG_PRINT1("resample start.\n");
 
 	double RANDOM_MAX = 9999.0;
 	std::default_random_engine gen(time(NULL));
@@ -226,6 +254,8 @@ void ParticleFilter::resample() {
 	}
 	weights = new_weights;
 	particles = new_particles;
+
+	DEBUG_PRINT1("resample end.\n");
 }
 
 Particle ParticleFilter::SetAssociations(Particle& particle, const std::vector<int>& associations,
